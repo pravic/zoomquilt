@@ -1,0 +1,22 @@
+<html>
+<head>
+	<title>Zoomquilt sample</title>
+	
+	<style>
+		html { size: max-content; background: transparent; }
+		picture { width: 800px; height: 600px; background-color: lightgrey; prototype: Zoomit; }
+	</style>
+	
+	<script src="zm.tis" type="text/tiscript"/>
+	
+	<script type="text/tiscript">
+		var x = view.box(#left, #border), y = view.box(#top, #border);
+		x += 100, y += 100;
+		view.move(x,y,900-20,660-5,false);
+	</script>
+	
+</head>
+<body>
+	<picture/>
+</body>
+</html>

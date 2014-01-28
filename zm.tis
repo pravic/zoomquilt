@@ -1,0 +1,141 @@
+/* Zoom implementation */
+function im(n) { return String.printf("images/%02d.jpg", n); }
+function load(n) { return self.loadImage(im(n)); }
+
+function log(msg, args..) {
+	// %1 %2
+	function R(s,g) { return args[g.toNumber()-1].toString(); }
+	
+	var s = msg.replace(/%(\d+)/g, R);
+	stdout.println(s);
+}
+
+function dump(args..) {
+	stdout.println("vars: " + args.join(", "));
+}
+
+class Zoomit: Behavior
+{
+	function attached() {
+		this.frame = 0;
+		this.count = 46;
+		this.delay = null;
+
+		this.scale = 0;
+		this.scaleRatio = 4;
+		
+		this.busy = false;
+		
+		this.paintContent = paintImage;
+		
+		if(this.delay)
+			this.timer(this.delay, function() {
+			if(this.delay == null)
+				return false;
+			
+			content.refresh();
+			this.nextStep();
+			return true;
+		});
+	}
+	
+	function nextFrame() {
+		return this.frame = (this.frame + 1) % this.count;
+	}
+	
+	function nextStep(diff = 1) {
+		// log("diff %1", diff);
+		if(diff >= 0) {
+			// zoom in
+			//this.scale++;
+			if(true || this.scale >= this.scaleRatio) {
+				this.scale = 0;
+				this.nextFrame();
+			}
+		} else {
+			// zoom out
+			//this.scale--;
+			if(true || this.scale < 0) {
+				//this.scale = this.scaleRatio - 1;
+				this.frame--;
+				if(this.frame < 0)
+					this.frame = this.count;
+			}
+		}
+	}
+	
+	function paintImage(gfx) {
+		//this.next = null;
+		var (w,h) = this.box(#dimension);
+
+		var frame = this.frame;
+		var no2 = (frame+1) % this.count;
+		log("paint: frame %1, scale %2", frame, this.scale);
+
+		var cur = load(frame);
+		var next = load(no2);
+		
+		var (iw,ih) = cur.size();
+		
+		var (scale, ratio) = (this.scale, this.scaleRatio);
+		
+		var image = new Image(iw,ih, function(gfx) {
+			// 800x600
+			// 400x300
+			var (cx,cy) = (iw/2,ih/2);
+			var (mx,my) = (cx/2,cy/2);
+
+			if(scale == 0) {
+				// draw current
+				gfx.drawImage(cur, 0,0, iw, ih);
+				
+				// draw inner
+				gfx.drawImage(next, mx,my, cx,cy);
+				
+			} else {
+				
+				// zoom current
+				// 800-400 / 4 = 100px per scale step
+				var dx = (iw-cx) / ratio;
+				var dy = (ih-cy) / ratio;
+				
+				dx *= scale;
+				dy *= scale;
+				
+				// 000-800
+				// 100-600
+				var dw = iw - dx*2;
+				var dh = ih - dy*2;
+				
+				dump(dx,dy,dw,dh);
+				gfx.drawImage(cur, 0,0,iw,ih, dx,dy,dw,dh);
+				
+				dx = (cx-mx) / ratio * scale;
+				dy = (cy-my) / ratio * scale;
+				
+				dw = cx - dx*2;
+				dh = cx - dy*2;
+				dump(dx,dy,dw,dh);
+				gfx.drawImage(next, mx,my,cx,cy, dx,dy,dw,dh);
+			}
+
+			gfx.lineWidth(2);
+			gfx.lineColor(Color.parse("red"));
+			gfx.rectangle(mx,my,cx,cy);
+		});
+		
+		gfx.drawImage(image, 0,0, iw, ih);
+	}
+	
+	function onMouse(event) {
+		if(event.type == Event.MOUSE_WHEEL) {
+			// stop timer
+			this.delay = null;
+
+			// rotate image
+			this.nextStep(event.wheelDelta);
+			this.refresh();
+			return true;
+		}
+	}
+}
